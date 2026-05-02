@@ -1,0 +1,1 @@
+# finder-video-thumbnail
