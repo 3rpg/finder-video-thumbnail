@@ -18,10 +18,10 @@
 					<key>Container</key>
 					<string>List</string>
 					<key>Optional</key>
-					<true/>
+					<false/>
 					<key>Types</key>
 					<array>
-						<string>com.apple.cocoa.string</string>
+						<string>com.apple.cocoa.path</string>
 					</array>
 				</dict>
 				<key>AMActionVersion</key>
@@ -49,7 +49,7 @@
 					<string>List</string>
 					<key>Types</key>
 					<array>
-						<string>com.apple.cocoa.string</string>
+						<string>com.apple.cocoa.path</string>
 					</array>
 				</dict>
 				<key>ActionBundlePath</key>
@@ -59,8 +59,7 @@
 				<key>ActionParameters</key>
 				<dict>
 					<key>COMMAND_STRING</key>
-          <string>SCRIPT="$HOME/Library/Services/生成视频网格.workflow/Contents/Resources/create-video-contact-sheet.sh"
-exec "$SCRIPT" "$@"</string>
+          <string>"$HOME/Library/Application Scripts/com.codex.video-grid/create-video-contact-sheet.sh" "$@"</string>
 					<key>CheckedForUserDefaultShell</key>
 					<true/>
 					<key>inputMethod</key>
@@ -197,6 +196,10 @@ exec "$SCRIPT" "$@"</string>
 		<integer>15</integer>
 		<key>processesInput</key>
 		<false/>
+		<key>serviceApplicationBundleID</key>
+		<string>com.apple.finder</string>
+		<key>serviceApplicationPath</key>
+		<string>/System/Library/CoreServices/Finder.app</string>
 		<key>serviceInputTypeIdentifier</key>
 		<string>com.apple.Automator.fileSystemObject</string>
 		<key>serviceOutputTypeIdentifier</key>
