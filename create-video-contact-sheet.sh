@@ -159,6 +159,33 @@ guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
 }
 let context = NSGraphicsContext(cgContext: cgContext, flipped: false)
 
+func preferredFont(size: CGFloat, weight: NSFont.Weight) -> NSFont {
+  if let font = NSFont(name: "PingFangSC-Semibold", size: size), weight.rawValue >= NSFont.Weight.semibold.rawValue {
+    return font
+  }
+  if let font = NSFont(name: "PingFangSC-Regular", size: size) {
+    return font
+  }
+  return NSFont.systemFont(ofSize: size, weight: weight)
+}
+
+func drawText(_ text: String, in rect: NSRect, font: NSFont, color: NSColor, align: NSTextAlignment = .left) {
+  let paragraph = NSMutableParagraphStyle()
+  paragraph.lineBreakMode = .byTruncatingMiddle
+  paragraph.alignment = align
+  let shadow = NSShadow()
+  shadow.shadowColor = NSColor.white.withAlphaComponent(0.85)
+  shadow.shadowBlurRadius = 1
+  shadow.shadowOffset = NSSize(width: 1, height: -1)
+  let attrs: [NSAttributedString.Key: Any] = [
+    .font: font,
+    .foregroundColor: color,
+    .paragraphStyle: paragraph,
+    .shadow: shadow
+  ]
+  (text as NSString).draw(in: rect, withAttributes: attrs)
+}
+
 func drawOutlined(_ text: String, in rect: NSRect, font: NSFont, align: NSTextAlignment = .left) {
   let paragraph = NSMutableParagraphStyle()
   paragraph.lineBreakMode = .byTruncatingMiddle
@@ -171,32 +198,6 @@ func drawOutlined(_ text: String, in rect: NSRect, font: NSFont, align: NSTextAl
     .paragraphStyle: paragraph
   ]
   (text as NSString).draw(in: rect, withAttributes: attrs)
-}
-
-func drawBadge(in rect: NSRect) {
-  NSColor(calibratedRed: 1.0, green: 0.83, blue: 0.04, alpha: 1.0).setFill()
-  NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8).fill()
-
-  let circle = NSRect(x: rect.midX - 26, y: rect.midY - 12, width: 52, height: 52)
-  NSColor.white.setFill()
-  NSBezierPath(ovalIn: circle).fill()
-
-  let triangle = NSBezierPath()
-  triangle.move(to: NSPoint(x: circle.midX - 8, y: circle.midY - 13))
-  triangle.line(to: NSPoint(x: circle.midX - 8, y: circle.midY + 13))
-  triangle.line(to: NSPoint(x: circle.midX + 14, y: circle.midY))
-  triangle.close()
-  NSColor(calibratedRed: 1.0, green: 0.83, blue: 0.04, alpha: 1.0).setFill()
-  triangle.fill()
-
-  let paragraph = NSMutableParagraphStyle()
-  paragraph.alignment = .center
-  let attrs: [NSAttributedString.Key: Any] = [
-    .font: NSFont.boldSystemFont(ofSize: 18),
-    .foregroundColor: NSColor.black,
-    .paragraphStyle: paragraph
-  ]
-  ("Player" as NSString).draw(in: NSRect(x: rect.minX, y: rect.minY + 10, width: rect.width, height: 24), withAttributes: attrs)
 }
 
 NSGraphicsContext.saveGraphicsState()
@@ -214,9 +215,8 @@ let infoLines = [
 
 let topY = CGFloat(height - 34)
 for (i, line) in infoLines.enumerated() {
-  drawOutlined(line, in: NSRect(x: 18, y: topY - CGFloat(i * 25), width: CGFloat(width - 220), height: 28), font: NSFont.boldSystemFont(ofSize: 22))
+  drawText(line, in: NSRect(x: 18, y: topY - CGFloat(i * 25), width: CGFloat(width - 36), height: 28), font: preferredFont(size: 22, weight: .semibold), color: NSColor(calibratedWhite: 0.10, alpha: 1.0))
 }
-drawBadge(in: NSRect(x: CGFloat(width - 154), y: CGFloat(height - 128), width: 126, height: 110))
 
 for row in 0..<rows {
   for column in 0..<columns {
@@ -236,7 +236,7 @@ for row in 0..<rows {
     frame.draw(in: inner, from: .zero, operation: .copy, fraction: 1.0)
 
     if index < timestamps.count {
-      drawOutlined(timestamps[index], in: NSRect(x: inner.minX, y: inner.minY + 8, width: inner.width, height: 26), font: NSFont.boldSystemFont(ofSize: 22), align: .center)
+      drawOutlined(timestamps[index], in: NSRect(x: inner.minX, y: inner.minY + 8, width: inner.width, height: 26), font: preferredFont(size: 22, weight: .semibold), align: .center)
     }
   }
 }
