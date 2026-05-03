@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-FRAME_COUNT=20
+FRAME_COUNT=16
 START_SECONDS=5
 OUTPUT_WIDTH=1920
 OUTPUT_HEIGHT=1080
-COLUMNS=5
+COLUMNS=4
 ROWS=4
-TILE_WIDTH=$((OUTPUT_WIDTH / COLUMNS))
-TILE_HEIGHT=$((OUTPUT_HEIGHT / ROWS))
+HEADER_HEIGHT=150
+PAGE_MARGIN=16
+TILE_GAP=14
+TILE_BORDER=2
+TILE_WIDTH=$(((OUTPUT_WIDTH - PAGE_MARGIN * 2 - TILE_GAP * (COLUMNS - 1)) / COLUMNS))
+TILE_HEIGHT=$(((OUTPUT_HEIGHT - HEADER_HEIGHT - PAGE_MARGIN - TILE_GAP * (ROWS - 1)) / ROWS))
 OUTPUT_SUBDIR="${FINDER_VIDEO_GRID_OUTPUT_SUBDIR:-${VIDEO_THUMBNAIL_OUTPUT_SUBDIR:-视频网格}}"
 
 find_tool() {
@@ -69,6 +73,17 @@ format_duration() {
   '
 }
 
+format_timestamp() {
+  awk -v duration="$1" '
+    BEGIN {
+      h = int(duration / 3600)
+      m = int((duration % 3600) / 60)
+      s = int(duration % 60)
+      printf "%02d:%02d:%02d", h, m, s
+    }
+  '
+}
+
 format_size() {
   awk -v bytes="$1" '
     BEGIN {
@@ -81,61 +96,161 @@ format_size() {
   '
 }
 
-render_metadata_overlay() {
+render_video_grid() {
   local output="$1"
-  local title="$2"
-  local info="$3"
+  local frame_dir="$2"
+  local filename="$3"
+  local byte_size="$4"
+  local resolution="$5"
+  local video_codec="$6"
+  local audio_codec="$7"
+  local duration_line="$8"
+  local timestamp_line="$9"
   local swift_cache
   swift_cache="$(dirname "$output")/swift-module-cache"
   mkdir -p "$swift_cache"
 
-  /usr/bin/swift -module-cache-path "$swift_cache" - "$output" "$title" "$info" "$OUTPUT_WIDTH" "152" <<'SWIFT'
+  /usr/bin/swift -module-cache-path "$swift_cache" - \
+    "$output" "$frame_dir" "$filename" "$byte_size" "$resolution" "$video_codec" "$audio_codec" "$duration_line" "$timestamp_line" \
+    "$OUTPUT_WIDTH" "$OUTPUT_HEIGHT" "$HEADER_HEIGHT" "$PAGE_MARGIN" "$TILE_GAP" "$TILE_BORDER" "$COLUMNS" "$ROWS" "$TILE_WIDTH" "$TILE_HEIGHT" <<'SWIFT'
 import AppKit
 
 let args = CommandLine.arguments
-guard args.count == 6,
-      let width = Int(args[4]),
-      let height = Int(args[5]) else {
+guard args.count == 20,
+      let width = Int(args[10]),
+      let height = Int(args[11]),
+      let headerHeight = Int(args[12]),
+      let pageMargin = Int(args[13]),
+      let tileGap = Int(args[14]),
+      let tileBorder = Int(args[15]),
+      let columns = Int(args[16]),
+      let rows = Int(args[17]),
+      let tileWidth = Int(args[18]),
+      let tileHeight = Int(args[19]) else {
   exit(2)
 }
 
 let output = args[1]
-let title = args[2]
-let info = args[3]
+let frameDir = args[2]
+let filename = args[3]
+let byteSize = args[4]
+let resolution = args[5]
+let videoCodec = args[6]
+let audioCodec = args[7]
+let duration = args[8]
+let timestamps = args[9].split(separator: "|").map(String.init)
 let size = NSSize(width: width, height: height)
-let image = NSImage(size: size)
 
-image.lockFocus()
-NSColor(calibratedWhite: 0.0, alpha: 0.68).setFill()
-NSBezierPath(rect: NSRect(origin: .zero, size: size)).fill()
+let bytesPerRow = width * 4
+let pixelData = UnsafeMutableRawPointer.allocate(byteCount: bytesPerRow * height, alignment: 16)
+defer { pixelData.deallocate() }
 
-let paragraph = NSMutableParagraphStyle()
-paragraph.lineBreakMode = .byTruncatingMiddle
-
-let titleAttributes: [NSAttributedString.Key: Any] = [
-  .font: NSFont.boldSystemFont(ofSize: 42),
-  .foregroundColor: NSColor.white,
-  .paragraphStyle: paragraph
-]
-let infoAttributes: [NSAttributedString.Key: Any] = [
-  .font: NSFont.systemFont(ofSize: 32),
-  .foregroundColor: NSColor(calibratedWhite: 0.90, alpha: 1.0),
-  .paragraphStyle: paragraph
-]
-
-let left: CGFloat = 42
-let usableWidth = CGFloat(width) - left * 2
-(title as NSString).draw(in: NSRect(x: left, y: 76, width: usableWidth, height: 52), withAttributes: titleAttributes)
-(info as NSString).draw(in: NSRect(x: left, y: 28, width: usableWidth, height: 40), withAttributes: infoAttributes)
-image.unlockFocus()
-
-guard let tiff = image.tiffRepresentation,
-      let bitmap = NSBitmapImageRep(data: tiff),
-      let png = bitmap.representation(using: .png, properties: [:]) else {
+guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+      let cgContext = CGContext(
+        data: pixelData,
+        width: width,
+        height: height,
+        bitsPerComponent: 8,
+        bytesPerRow: bytesPerRow,
+        space: colorSpace,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+      ) else {
   exit(3)
 }
+let context = NSGraphicsContext(cgContext: cgContext, flipped: false)
 
-try png.write(to: URL(fileURLWithPath: output), options: .atomic)
+func drawOutlined(_ text: String, in rect: NSRect, font: NSFont, align: NSTextAlignment = .left) {
+  let paragraph = NSMutableParagraphStyle()
+  paragraph.lineBreakMode = .byTruncatingMiddle
+  paragraph.alignment = align
+  let attrs: [NSAttributedString.Key: Any] = [
+    .font: font,
+    .foregroundColor: NSColor.white,
+    .strokeColor: NSColor.black,
+    .strokeWidth: -3.0,
+    .paragraphStyle: paragraph
+  ]
+  (text as NSString).draw(in: rect, withAttributes: attrs)
+}
+
+func drawBadge(in rect: NSRect) {
+  NSColor(calibratedRed: 1.0, green: 0.83, blue: 0.04, alpha: 1.0).setFill()
+  NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8).fill()
+
+  let circle = NSRect(x: rect.midX - 26, y: rect.midY - 12, width: 52, height: 52)
+  NSColor.white.setFill()
+  NSBezierPath(ovalIn: circle).fill()
+
+  let triangle = NSBezierPath()
+  triangle.move(to: NSPoint(x: circle.midX - 8, y: circle.midY - 13))
+  triangle.line(to: NSPoint(x: circle.midX - 8, y: circle.midY + 13))
+  triangle.line(to: NSPoint(x: circle.midX + 14, y: circle.midY))
+  triangle.close()
+  NSColor(calibratedRed: 1.0, green: 0.83, blue: 0.04, alpha: 1.0).setFill()
+  triangle.fill()
+
+  let paragraph = NSMutableParagraphStyle()
+  paragraph.alignment = .center
+  let attrs: [NSAttributedString.Key: Any] = [
+    .font: NSFont.boldSystemFont(ofSize: 18),
+    .foregroundColor: NSColor.black,
+    .paragraphStyle: paragraph
+  ]
+  ("Player" as NSString).draw(in: NSRect(x: rect.minX, y: rect.minY + 10, width: rect.width, height: 24), withAttributes: attrs)
+}
+
+NSGraphicsContext.saveGraphicsState()
+NSGraphicsContext.current = context
+NSColor(calibratedWhite: 0.94, alpha: 1.0).setFill()
+NSBezierPath(rect: NSRect(origin: .zero, size: size)).fill()
+
+let infoLines = [
+  "文件名:\(filename)",
+  "大小:\(byteSize)",
+  "分辨率:\(resolution)",
+  "视频解码器:\(videoCodec) 音频解码器:\(audioCodec)",
+  "时长:\(duration)"
+]
+
+let topY = CGFloat(height - 34)
+for (i, line) in infoLines.enumerated() {
+  drawOutlined(line, in: NSRect(x: 18, y: topY - CGFloat(i * 25), width: CGFloat(width - 220), height: 28), font: NSFont.boldSystemFont(ofSize: 22))
+}
+drawBadge(in: NSRect(x: CGFloat(width - 154), y: CGFloat(height - 128), width: 126, height: 110))
+
+for row in 0..<rows {
+  for column in 0..<columns {
+    let index = row * columns + column
+    let framePath = "\(frameDir)/frame_\(String(format: "%03d", index + 1)).jpg"
+    guard let frame = NSImage(contentsOfFile: framePath) else {
+      continue
+    }
+
+    let x = CGFloat(pageMargin + column * (tileWidth + tileGap))
+    let y = CGFloat(height - headerHeight - (row + 1) * tileHeight - row * tileGap)
+    let outer = NSRect(x: x, y: y, width: CGFloat(tileWidth), height: CGFloat(tileHeight))
+    NSColor.black.setFill()
+    NSBezierPath(rect: outer).fill()
+
+    let inner = outer.insetBy(dx: CGFloat(tileBorder), dy: CGFloat(tileBorder))
+    frame.draw(in: inner, from: .zero, operation: .copy, fraction: 1.0)
+
+    if index < timestamps.count {
+      drawOutlined(timestamps[index], in: NSRect(x: inner.minX, y: inner.minY + 8, width: inner.width, height: 26), font: NSFont.boldSystemFont(ofSize: 22), align: .center)
+    }
+  }
+}
+NSGraphicsContext.restoreGraphicsState()
+
+guard let cgImage = cgContext.makeImage() else {
+  exit(4)
+}
+let bitmap = NSBitmapImageRep(cgImage: cgImage)
+guard let jpeg = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else {
+  exit(5)
+}
+
+try jpeg.write(to: URL(fileURLWithPath: output), options: .atomic)
 SWIFT
 }
 
@@ -203,21 +318,39 @@ make_sheet() {
     return 1
   }
 
-  local width height fps size formatted_duration formatted_size overlay_file sheet_file title_line info_line
+  local width height fps size formatted_duration formatted_size video_codec audio_codec resolution timestamp_labels
   width="$("$FFPROBE" -v error -select_streams v:0 -show_entries stream=width -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null | head -n 1 || true)"
   height="$("$FFPROBE" -v error -select_streams v:0 -show_entries stream=height -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null | head -n 1 || true)"
   fps="$("$FFPROBE" -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null | awk -F/ 'NF == 2 && $2 != 0 { printf "%.2f", $1 / $2; next } { print }' | head -n 1 || true)"
   size="$(stat -f '%z' "$input" 2>/dev/null || echo 0)"
   formatted_duration="$(format_duration "$duration")"
   formatted_size="$(format_size "$size")"
-  title_line="$base"
-  info_line="${formatted_duration}  |  ${width:-?}x${height:-?}  |  ${fps:-?} fps  |  ${formatted_size}"
-  overlay_file="$tmpdir/metadata-overlay.png"
-  sheet_file="$tmpdir/sheet.jpg"
-  render_metadata_overlay "$overlay_file" "$title_line" "$info_line" || {
-    notify "视频网格生成失败" "渲染视频信息失败：$base"
-    return 1
-  }
+  video_codec="$("$FFPROBE" -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null | head -n 1 || true)"
+  audio_codec="$("$FFPROBE" -v error -select_streams a:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null | head -n 1 || true)"
+  resolution="${width:-?}x${height:-?}(${fps:-?}fps)"
+  timestamp_labels="$(awk -v duration="$duration" -v start="$START_SECONDS" -v count="$FRAME_COUNT" '
+    BEGIN {
+      if (duration <= 0) exit 1
+      actual_start = duration > start ? start : 0
+      remaining = duration - actual_start
+      for (i = 0; i < count; i++) {
+        if (i == 0) {
+          t = actual_start
+        } else if (remaining <= 0) {
+          t = actual_start
+        } else {
+          t = actual_start + remaining * i / count
+        }
+        if (t >= duration) t = duration > 0.2 ? duration - 0.2 : duration * 0.9
+        if (t < 0) t = 0
+        h = int(t / 3600)
+        m = int((t % 3600) / 60)
+        s = int(t % 60)
+        sep = i == 0 ? "" : "|"
+        printf "%s%02d:%02d:%02d", sep, h, m, s
+      }
+    }
+  ')"
 
   local index=1
   while IFS= read -r timestamp; do
@@ -234,27 +367,10 @@ make_sheet() {
     index=$((index + 1))
   done <<< "$timestamps"
 
-  "$FFMPEG" -hide_banner -loglevel error \
-    -framerate 1 \
-    -i "$tmpdir/frame_%03d.jpg" \
-    -filter_complex "tile=${COLUMNS}x${ROWS}:margin=0:padding=0,scale=${OUTPUT_WIDTH}:${OUTPUT_HEIGHT}" \
-    -frames:v 1 \
-    -q:v 2 \
-    -y "$sheet_file" || {
-      notify "视频网格生成失败" "拼接图片失败：$base"
-      return 1
-    }
-
-  "$FFMPEG" -hide_banner -loglevel error \
-    -i "$sheet_file" \
-    -i "$overlay_file" \
-    -filter_complex "overlay=0:H-h" \
-    -frames:v 1 \
-    -q:v 2 \
-    -y "$output" || {
-      notify "视频网格生成失败" "合成视频信息失败：$base"
-      return 1
-    }
+  render_video_grid "$output" "$tmpdir" "$base" "${formatted_size}(${size}bytes)" "$resolution" "${video_codec:-?}" "${audio_codec:-?}" "$formatted_duration" "$timestamp_labels" || {
+    notify "视频网格生成失败" "合成视频网格失败：$base"
+    return 1
+  }
 
   notify "视频网格已生成" "$(basename "$output")"
   printf '%s\n' "$output"
