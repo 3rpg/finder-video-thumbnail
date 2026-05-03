@@ -22,6 +22,7 @@
 - `生成视频网格.workflow`：Finder/Automator 快速操作。
 - `install-finder-quick-action.sh`：安装脚本，会复制 workflow、启用快速操作，并刷新 Finder。
 - `uninstall-finder-quick-action.sh`：卸载脚本，会移除 workflow、处理脚本和服务菜单记录。
+- `build-pkg.sh`：生成 macOS `.pkg` 安装包。
 - `VERSION`：当前版本号。
 - `CHANGELOG.md`：版本记录。
 
@@ -35,10 +36,10 @@ brew install ffmpeg
 
 ## 安装 Finder 快速操作
 
-推荐直接安装 pkg：
+推荐从 GitHub Release 下载并直接安装 pkg：
 
 ```text
-releases/finder-video-grid-1.1.pkg
+finder-video-grid-1.1.pkg
 ```
 
 双击打开安装包，按提示输入管理员密码。安装完成后，在 Finder 中右键视频文件，选择：
@@ -55,9 +56,15 @@ pkg 会把快速操作安装到：
 
 如果 macOS 提示安装包来自未认证开发者，可以在 Finder 中按住 Control 点击 pkg 后选择“打开”。当前 pkg 未做 Developer ID 签名。
 
-### 脚本安装
+Release 同时提供源码包：
 
-在本目录运行：
+```text
+finder-video-grid-1.1-source.zip
+```
+
+### 从源码安装
+
+如果你下载的是源码包，也可以在源码目录运行：
 
 ```bash
 chmod +x install-finder-quick-action.sh
@@ -75,6 +82,30 @@ chmod +x install-finder-quick-action.sh
 ```text
 ~/Library/Application Scripts/com.codex.video-grid/create-video-contact-sheet.sh
 ```
+
+## 卸载
+
+如果使用 pkg 安装，先运行源码包里的卸载脚本：
+
+```bash
+chmod +x uninstall-finder-quick-action.sh
+./uninstall-finder-quick-action.sh
+```
+
+如果终端提示系统级 workflow 需要管理员权限，继续运行它打印出的命令：
+
+```bash
+sudo rm -rf '/Library/Services/生成视频网格.workflow'
+```
+
+然后刷新 Finder：
+
+```bash
+/System/Library/CoreServices/pbs -flush
+killall Finder
+```
+
+卸载脚本也会清理 1.0 使用过的旧名称和旧脚本目录。
 
 ## 使用方式
 
@@ -121,17 +152,6 @@ killall Finder
 ```bash
 ./create-video-contact-sheet.sh /path/to/a.mp4 /path/to/b.mov
 ```
-
-## 卸载
-
-在本目录运行：
-
-```bash
-chmod +x uninstall-finder-quick-action.sh
-./uninstall-finder-quick-action.sh
-```
-
-卸载脚本也会清理 1.0 使用过的旧名称和旧脚本目录。
 
 ## 版本
 
