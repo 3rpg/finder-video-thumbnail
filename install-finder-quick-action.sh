@@ -36,16 +36,18 @@ rm -rf "$LEGACY_SCRIPT_DIR"
 
 /usr/libexec/PlistBuddy -c 'Delete :NSServicesStatus:(null)\ -\ 生成视频缩略图\ -\ runWorkflowAsService' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
 /usr/libexec/PlistBuddy -c 'Delete :NSServicesStatus:(null)\ -\ Generate\ Video\ Thumbnail\ -\ runWorkflowAsService' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
+/usr/libexec/PlistBuddy -c 'Delete :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
+/usr/libexec/PlistBuddy -c 'Delete :NSServicesStatus:com.codex.video-grid.workflow\ -\ 生成视频网格\ -\ runWorkflowAsService' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
 /usr/libexec/PlistBuddy -c 'Add :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService dict' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
 /usr/libexec/PlistBuddy -c 'Add :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes dict' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
-/usr/libexec/PlistBuddy -c 'Set :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:ContextMenu 1' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || \
-  /usr/libexec/PlistBuddy -c 'Add :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:ContextMenu integer 1' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
-/usr/libexec/PlistBuddy -c 'Set :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:FinderPreview 1' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || \
-  /usr/libexec/PlistBuddy -c 'Add :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:FinderPreview integer 1' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
-/usr/libexec/PlistBuddy -c 'Set :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:ServicesMenu 1' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || \
-  /usr/libexec/PlistBuddy -c 'Add :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:ServicesMenu integer 1' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
-/usr/libexec/PlistBuddy -c 'Set :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:TouchBar 0' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || \
-  /usr/libexec/PlistBuddy -c 'Add :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:TouchBar integer 0' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
+/usr/libexec/PlistBuddy -c 'Set :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:ContextMenu true' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || \
+  /usr/libexec/PlistBuddy -c 'Add :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:ContextMenu bool true' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
+/usr/libexec/PlistBuddy -c 'Set :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:FinderPreview true' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || \
+  /usr/libexec/PlistBuddy -c 'Add :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:FinderPreview bool true' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
+/usr/libexec/PlistBuddy -c 'Set :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:ServicesMenu true' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || \
+  /usr/libexec/PlistBuddy -c 'Add :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:ServicesMenu bool true' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
+/usr/libexec/PlistBuddy -c 'Set :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:TouchBar false' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || \
+  /usr/libexec/PlistBuddy -c 'Add :NSServicesStatus:(null)\ -\ 生成视频网格\ -\ runWorkflowAsService:presentation_modes:TouchBar bool false' "$HOME/Library/Preferences/pbs.plist" >/dev/null 2>&1 || true
 
 /System/Library/CoreServices/pbs -flush >/dev/null 2>&1 || true
 killall Finder >/dev/null 2>&1 || true
