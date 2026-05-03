@@ -14,6 +14,7 @@ TILE_BORDER=2
 TILE_WIDTH=$(((OUTPUT_WIDTH - PAGE_MARGIN * 2 - TILE_GAP * (COLUMNS - 1)) / COLUMNS))
 TILE_HEIGHT=$(((OUTPUT_HEIGHT - HEADER_HEIGHT - PAGE_MARGIN - TILE_GAP * (ROWS - 1)) / ROWS))
 OUTPUT_SUBDIR="${FINDER_VIDEO_GRID_OUTPUT_SUBDIR:-${VIDEO_THUMBNAIL_OUTPUT_SUBDIR:-视频网格}}"
+CACHE_ROOT="${FINDER_VIDEO_GRID_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/Library/Caches}/finder-video-grid}"
 
 find_tool() {
   local name="$1"
@@ -107,7 +108,7 @@ render_video_grid() {
   local duration_line="$8"
   local timestamp_line="$9"
   local swift_cache
-  swift_cache="$(dirname "$output")/swift-module-cache"
+  swift_cache="$CACHE_ROOT/swift-module-cache"
   mkdir -p "$swift_cache"
 
   /usr/bin/swift -module-cache-path "$swift_cache" - \
@@ -371,6 +372,7 @@ make_sheet() {
     notify "视频网格生成失败" "合成视频网格失败：$base"
     return 1
   }
+  rm -rf "$output_dir/swift-module-cache"
 
   notify "视频网格已生成" "$(basename "$output")"
   printf '%s\n' "$output"

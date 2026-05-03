@@ -4,3 +4,6 @@ test-video_thumbnail_1080p.jpg
 Generate Video Thumbnail.workflow/
 
 build/
+releases/
+*.pkg
+swift-module-cache/
