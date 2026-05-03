@@ -35,6 +35,28 @@ brew install ffmpeg
 
 ## 安装 Finder 快速操作
 
+推荐直接安装 pkg：
+
+```text
+releases/finder-video-grid-1.1.pkg
+```
+
+双击打开安装包，按提示输入管理员密码。安装完成后，在 Finder 中右键视频文件，选择：
+
+```text
+快速操作 > 生成视频网格
+```
+
+pkg 会把快速操作安装到：
+
+```text
+/Library/Services/生成视频网格.workflow
+```
+
+如果 macOS 提示安装包来自未认证开发者，可以在 Finder 中按住 Control 点击 pkg 后选择“打开”。当前 pkg 未做 Developer ID 签名。
+
+### 脚本安装
+
 在本目录运行：
 
 ```bash
