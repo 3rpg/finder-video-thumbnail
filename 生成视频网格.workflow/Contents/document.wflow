@@ -59,7 +59,7 @@
 				<key>ActionParameters</key>
 				<dict>
 					<key>COMMAND_STRING</key>
-          <string>SCRIPT="/Users/charley/Library/Services/生成视频缩略图.workflow/Contents/Resources/create-video-contact-sheet.sh"
+          <string>SCRIPT="$HOME/Library/Services/生成视频网格.workflow/Contents/Resources/create-video-contact-sheet.sh"
 exec "$SCRIPT" "$@"</string>
 					<key>CheckedForUserDefaultShell</key>
 					<true/>
